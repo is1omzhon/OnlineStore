@@ -76,6 +76,12 @@ do
             string kword = Console.ReadLine();
             SearchProducts(products.Values.ToList(), kword);
             break;
+        case "11":
+            Console.Write("Idni kiriting: ");
+            int idProduct = int.Parse(Console.ReadLine());
+            Console.WriteLine(IsProductAvailable(products.Values.ToList(), idProduct));
+            break;
+
         default:
             Console.WriteLine("Noto'gri tanlov!");
             break;
