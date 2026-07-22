@@ -1,0 +1,15 @@
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\obj\Debug\net10.0\OnlineStore.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\obj\Debug\net10.0\OnlineStore.AssemblyInfoInputs.cache
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\obj\Debug\net10.0\OnlineStore.AssemblyInfo.cs
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\obj\Debug\net10.0\OnlineStore.csproj.CoreCompileInputs.cache
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\bin\Debug\net10.0\OnlineStore.exe
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\bin\Debug\net10.0\OnlineStore.deps.json
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\bin\Debug\net10.0\OnlineStore.runtimeconfig.json
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\bin\Debug\net10.0\OnlineStore.dll
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\bin\Debug\net10.0\OnlineStore.pdb
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\obj\Debug\net10.0\OnlineStore.dll
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\obj\Debug\net10.0\refint\OnlineStore.dll
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\obj\Debug\net10.0\OnlineStore.pdb
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\obj\Debug\net10.0\OnlineStore.genruntimeconfig.cache
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\obj\Debug\net10.0\ref\OnlineStore.dll
+C:\Users\islom_obbpec\OneDrive\Рабочий стол\Проекты С#\OnlineStore\obj\Debug\net10.0\OnlineStore.sourcelink.json

@@ -1,10 +1,22 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using Exceptions;
 using Models;
 
 Dictionary<int, Product> products = new Dictionary<int, Product>();
 HashSet<string> categories = new HashSet<string>();
 Queue<string> orderQueue = new Queue<string>();
+
+ProductAddedHandler? productNotifier = null;
+StockChangedHandler? stockNotifier = null;
+
+// obuna bulish
+productNotifier += OnProductAdded;
+productNotifier += OnProductCategory;
+
+stockNotifier += OnLowStock;
+stockNotifier += OnLowStockEmail;
 
 products.Add(1, new Product { Id = 1, Name = "Telefon", Price = 1500000, StockQuantity = 10, Category = "Elektronika" });
 products.Add(2, new Product { Id = 2, Name = "Noutbook", Price = 8000000, StockQuantity = 5, Category = "Elektronika" });
@@ -12,13 +24,13 @@ products.Add(3, new Product { Id = 3, Name = "Miw", Price = 500000, StockQuantit
 products.Add(4, new Product { Id = 4, Name = "T-Shirt", Price = 1200000, StockQuantity = 15, Category = "Kiyim" });
 products.Add(5, new Product { Id = 5, Name = "Bryuk", Price = 2500000, StockQuantity = 8, Category = "Kiyim" });
 
-
 categories.Add("Elektronika");
 categories.Add("Kiyim");
 
 string userChoice = string.Empty;
 do
 {
+    Console.Clear();
     Console.WriteLine("\n===== ONLINE STORE =====");
     Console.WriteLine("1. Barcha mahsulotlarni ko'rish");
     Console.WriteLine("2. Mahsulot qidirish (Id bo'yicha)");
@@ -30,6 +42,9 @@ do
     Console.WriteLine("8. Kategoriya bo'yicha ko'rish");
     Console.WriteLine("9. Statistika");
     Console.WriteLine("10. Qidiruv");
+    Console.WriteLine("11. Tekshirish mahsulot bor yuqligini!");
+    Console.WriteLine("12. Mahsulotlarni saqlash");
+    Console.WriteLine("13. Mahsulotlarni yuklash");
 
     Console.Write("Dasturni ishlatish uchun birini tanleng: ");
     string choice = Console.ReadLine();
@@ -42,10 +57,27 @@ do
         case "2":
             Console.Write("Id kiriting: ");
             int id = int.Parse(Console.ReadLine());
-            GetProductById(products, id);
+            try
+            {
+                GetProductById(products, id);
+            }
+            catch (ProductNotFoundException ex)
+            {
+                Console.WriteLine($"Xato: {ex.Message}");
+                Console.WriteLine($"Qidirilgan Id: {ex.ProductId}");
+
+            }
             break;
         case "3":
-            AddProduct(products, categories);
+            try
+            {
+                AddProduct(products, categories);
+            }
+            catch (InvalidPriceException ex)
+            {
+                Console.WriteLine($"Xato: {ex.Message}");
+                Console.WriteLine($"Kititilingan narx: {ex.Message}");
+            }
             break;
         case "4":
             Console.Write("Id kiriting: ");
@@ -58,7 +90,20 @@ do
             ShowCategories(categories);
             break;
         case "6":
-            AddOrder(products, orderQueue);
+            try
+            {
+                AddOrder(products, orderQueue);
+            }
+            catch (ProductOutOfStockException ex)
+            {
+                Console.WriteLine($"Xato: {ex.Message}");
+                Console.WriteLine($"Mahsulot: {ex.ProductName}");
+
+            }
+            catch (ProductNotFoundException ex)
+            {
+                Console.WriteLine($"Xato: {ex.Message}");
+            }
             break;
         case "7":
             ProcessOrder(orderQueue);
@@ -81,6 +126,12 @@ do
             int idProduct = int.Parse(Console.ReadLine());
             Console.WriteLine(IsProductAvailable(products.Values.ToList(), idProduct));
             break;
+        case "12":
+            await SaveProductsAsync(products);
+            break;
+        case "13":
+            await LoadProductsAsync(products);
+            break;
 
         default:
             Console.WriteLine("Noto'gri tanlov!");
@@ -91,7 +142,6 @@ do
     userChoice = Console.ReadLine();
 
 } while (userChoice.ToLower() == "y");
-
 
 // Wunchaki productni ekranga chiqoriw
 void ShowAllProducts(Dictionary<int, Product> products)
@@ -124,8 +174,13 @@ void AddProduct(Dictionary<int, Product> products, HashSet<string> categories)
     Console.Write("Nomi: ");
     string name = Console.ReadLine();
 
-    Console.WriteLine("Narxi: ");
+    Console.Write("Narxi: ");
     decimal price = decimal.Parse(Console.ReadLine());
+
+    if (price <= 0)
+    {
+        throw new InvalidPriceException(price);
+    }
 
     Console.Write("Stock miqdori: ");
     int stock = int.Parse(Console.ReadLine());
@@ -144,10 +199,10 @@ void AddProduct(Dictionary<int, Product> products, HashSet<string> categories)
     };
 
     products.Add(id, newProduct);
-
     categories.Add(category);
-
     Console.WriteLine($" {name} mahsuloti muvaffaqiyatli qo'shildi! ");
+
+    productNotifier?.Invoke(newProduct);
 }
 
 void UpdateStock(Dictionary<int, Product> products, int id, int qty)
@@ -162,11 +217,17 @@ void UpdateStock(Dictionary<int, Product> products, int id, int qty)
     {
         foundProduct.StockQuantity = qty;
         Console.WriteLine($"{foundProduct.Name} mahsulotining stocki {qty} taga yangilandi!");
+
+        if (qty < 5)
+        {
+            stockNotifier?.Invoke(foundProduct.Name, qty);
+        }
     }
     else
     {
         Console.WriteLine($"Id: {id} bo'lgan mahsulot topilmadi!");
     }
+
 }
 
 void ShowCategories(HashSet<string> categories)
@@ -187,8 +248,7 @@ void AddOrder(Dictionary<int, Product> products, Queue<string> orderQueue)
     {
         if (foundProduct.StockQuantity == 0)
         {
-            Console.WriteLine("Bu mahsulot omborda yuq");
-            return;
+            throw new ProductOutOfStockException(foundProduct.Name);
         }
 
         orderQueue.Enqueue(foundProduct.Name);
@@ -197,7 +257,7 @@ void AddOrder(Dictionary<int, Product> products, Queue<string> orderQueue)
     }
     else
     {
-        Console.WriteLine("Mahsulot topilmadi");
+        throw new ProductNotFoundException(id);
     }
 }
 
@@ -226,7 +286,7 @@ void GetProductById(Dictionary<int, Product> products, int id)
     }
     else
     {
-        Console.WriteLine($"{id} mahsulot mavjud emas!");
+        throw new ProductNotFoundException(id);
     }
 }
 
@@ -249,7 +309,6 @@ void GetProductsByCategory(List<Product> products, string category)
         Console.WriteLine($"{p.Name} - {p.Price} so'm (stock: {p.StockQuantity})");
     }
 }
-
 
 void ShowStatictics(List<Product> products)
 {
@@ -282,12 +341,13 @@ void GetMostExpensiveProduct(List<Product> products)
 {
     Product mostExpensive = products.MaxBy(p => p.Price);
 
-    Console.WriteLine($"Eng qimmat: {mostExpensive.Name} - {mostExpensive.Price} so'm");       
+    Console.WriteLine($"Eng qimmat: {mostExpensive.Name} - {mostExpensive.Price} so'm");
 }
+
 void GetLowStockProducts(List<Product> products)
 {
     var res = products.Where(p => p.StockQuantity <= 5).ToList();
-    foreach(var p in res)
+    foreach (var p in res)
     {
         Console.WriteLine($"{p.Name} - stock: {p.StockQuantity} ta");
     }
@@ -297,7 +357,7 @@ void GetLowStockProducts(List<Product> products)
 void GetProductCountByCategory(List<Product> products)
 {
     var resCat = products.GroupBy(p => p.Category);
-    foreach(var item in resCat)
+    foreach (var item in resCat)
     {
         Console.WriteLine($"{item.Key} : {item.Count()} ta");
     }
@@ -320,8 +380,74 @@ void GetProductsSortedByPrice(List<Product> products, string category)
         return;
     }
 
-    foreach(var item in sortPrice)
+    foreach (var item in sortPrice)
     {
         Console.WriteLine($"{item.Name} - {item.Price}  {item.Category}");
     }
+}
+
+void OnProductAdded(Product product)
+{
+    Console.WriteLine($"✅ Yangi mahsulot qo'shildi: {product.Name}");
+}
+
+void OnProductCategory(Product product)
+{
+    Console.WriteLine($"📋 Kategoriya: {product.Category}");
+}
+
+void OnLowStock(string productName, int stock)
+{
+    Console.WriteLine($"⚠️ OGOHLANTIRISH: {productName} — {stock} ta qoldi!");
+}
+
+void OnLowStockEmail(string productName, int stock)
+{
+    Console.WriteLine($"📧 Email yuborildi: {productName} kam qoldi!");
+}
+
+async Task SaveProductsAsync(Dictionary<int, Product> products)
+{
+    List<string> lines = new List<string>();
+
+    foreach (var item in products)
+    {
+        Product p = item.Value;
+        lines.Add($"{p.Id} , {p.Name}, {p.Price}, {p.StockQuantity}, {p.Category}");
+    }
+
+    await File.WriteAllLinesAsync("products.txt", lines);
+    Console.WriteLine("✅ Mahsulotlar saqlandi!");
+}
+
+async Task LoadProductsAsync(Dictionary<int, Product> products)
+{
+    if (!File.Exists("products.txt"))
+    {
+        Console.WriteLine("Fayl topilmadi, boshlang'ich malu'motlar ishlatilinadi!");
+        return;
+    }
+
+    string[] lines = await File.ReadAllLinesAsync("products.txt");
+
+    products.Clear();
+
+    foreach (var line in lines)
+    {
+        string[] parts = line.Split(',');
+
+        Product p = new Product
+        {
+            Id = int.Parse(parts[0]),
+            Name = parts[1],
+            Price = decimal.Parse(parts[2]),
+            StockQuantity = int.Parse(parts[3]),
+            Category = parts[4]
+        };
+
+        products.Add(p.Id, p);
+    }
+
+    Console.WriteLine($"✅ {products.Count} ta mahsulot yuklandi!");
+
 }

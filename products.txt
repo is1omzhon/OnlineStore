@@ -1,0 +1,5 @@
+1 ,  Telefon, 1500000, 10,  Elektronika
+2 ,  Noutbook, 8000000, 5,  Elektronika
+3 ,  Miw, 500000, 30,  Elektronika
+4 ,  T-Shirt, 1200000, 15,  Kiyim
+5 ,  Bryuk, 2500000, 8,  Kiyim
