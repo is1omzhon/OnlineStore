@@ -11,6 +11,8 @@ Queue<string> orderQueue = new Queue<string>();
 ProductAddedHandler? productNotifier = null;
 StockChangedHandler? stockNotifier = null;
 
+
+
 // obuna bulish
 productNotifier += OnProductAdded;
 productNotifier += OnProductCategory;
@@ -45,6 +47,8 @@ do
     Console.WriteLine("11. Tekshirish mahsulot bor yuqligini!");
     Console.WriteLine("12. Mahsulotlarni saqlash");
     Console.WriteLine("13. Mahsulotlarni yuklash");
+    Console.WriteLine("14. API dan mahsulotlar olish");
+    Console.WriteLine("15. Backup saqlash");
 
     Console.Write("Dasturni ishlatish uchun birini tanleng: ");
     string choice = Console.ReadLine();
@@ -92,7 +96,7 @@ do
         case "6":
             try
             {
-                AddOrder(products, orderQueue);
+                await AddOrder(products, orderQueue);
             }
             catch (ProductOutOfStockException ex)
             {
@@ -132,7 +136,12 @@ do
         case "13":
             await LoadProductsAsync(products);
             break;
-
+        case "14":
+            await GetProductsFromApiAsync(products);
+            break;
+        case "15":
+            await BackupProductsAsync(products);
+            break;
         default:
             Console.WriteLine("Noto'gri tanlov!");
             break;
@@ -239,7 +248,7 @@ void ShowCategories(HashSet<string> categories)
     }
 }
 
-void AddOrder(Dictionary<int, Product> products, Queue<string> orderQueue)
+async Task AddOrder(Dictionary<int, Product> products, Queue<string> orderQueue)
 {
     Console.WriteLine("Mahsulotni Id sini kiriting: ");
     int id = int.Parse(Console.ReadLine());
@@ -253,7 +262,12 @@ void AddOrder(Dictionary<int, Product> products, Queue<string> orderQueue)
 
         orderQueue.Enqueue(foundProduct.Name);
         foundProduct.StockQuantity--;
-        Console.WriteLine($"{foundProduct.Name} buyurtma navbatiga qushildi! ");
+        Console.WriteLine($"{foundProduct.Name} buyurtma navbatiga qo'shildi!");
+
+        // ← SHU QATORLARNI QO'SHING
+        Console.Write("Emailingizni kiriting: ");
+        string email = Console.ReadLine();
+        await SendEmailAsync(foundProduct.Name, email);
     }
     else
     {
@@ -451,3 +465,107 @@ async Task LoadProductsAsync(Dictionary<int, Product> products)
     Console.WriteLine($"✅ {products.Count} ta mahsulot yuklandi!");
 
 }
+
+async Task SendEmailAsync(string productName, string customerEmail)
+{
+    Console.WriteLine($"📧 Email yuborilmoqda: {customerEmail} ga...");
+
+    // Real hayotda bu yerda email xizmatiga so'rov ketadi
+    // Biz simulyatsiya qilamiz — 1 soniya kutish
+    await Task.Delay(1000);
+
+    Console.WriteLine($"✅ Email yuborildi!");
+    Console.WriteLine($"   Kimga: {customerEmail}");
+    Console.WriteLine($"   Xabar: '{productName}' buyurtmangiz qabul qilindi!");
+}
+
+async Task GetProductsFromApiAsync(Dictionary<int, Product> products)
+{
+    Console.WriteLine("🌐 API dan mahsulot olinmoqda");
+
+    using HttpClient client = new HttpClient();
+
+    try
+    {
+        string json = await client.GetStringAsync(
+            "https://jsonplaceholder.typicode.com/posts");
+
+        Console.WriteLine("API dan javob keldi");
+
+        int startId = products.Count + 1;
+
+        products.Add(startId, new Product
+        {
+            Id = startId,
+            Name = "API Mahsulot 1",
+            Price = 999000,
+            StockQuantity = 15,
+            Category = "API"
+        });
+
+        products.Add(startId + 1, new Product
+        {
+            Id = startId + 1,
+            Name = "API Mahsulot 2",
+            Price = 1499000,
+            StockQuantity = 8,
+            Category = "API"
+        });
+
+        products.Add(startId + 2, new Product
+        {
+            Id = startId + 2,
+            Name = "API Mahsulot 3",
+            Price = 2999000,
+            StockQuantity = 3,
+            Category = "API"
+        });
+
+        Console.WriteLine($"✅ 3 ta yangi mahsulot qo'shildi!");
+        Console.WriteLine($"Jami mahsulotlar: {products.Count} ta");
+
+    }
+    catch (HttpRequestException ex)
+    {
+        Console.WriteLine("Internet xatosi");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Xato: {ex.Message}");
+    }
+}
+
+async Task BackupProductsAsync(Dictionary<int, Product> products)
+{
+    Console.WriteLine("💾 Backup qilinmoqda...");
+
+    try
+    {
+        // Parallel — asosiy va backup faylga bir vaqtda saqlash
+        List<string> lines = new List<string>();
+
+        foreach (var item in products)
+        {
+            Product p = item.Value;
+            lines.Add($"{p.Id},{p.Name},{p.Price},{p.StockQuantity},{p.Category}");
+        }
+
+        // Ikki faylga PARALLEL saqlash — Task.WhenAll!
+        Task saveMain = File.WriteAllLinesAsync("products.txt", lines);
+        Task saveBackup = File.WriteAllLinesAsync(
+            $"backup_{DateTime.Now:yyyy-MM-dd}.txt", lines);
+
+        await Task.WhenAll(saveMain, saveBackup);
+
+        Console.WriteLine($"✅ Asosiy fayl saqlandi: products.txt");
+        Console.WriteLine($"✅ Backup saqlandi: backup_{DateTime.Now:yyyy-MM-dd}.txt");
+        Console.WriteLine($"💾 Jami {products.Count} ta mahsulot saqlandi!");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Backup xatosi: {ex.Message}");
+    }
+}
+
+
+
